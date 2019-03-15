@@ -14,6 +14,7 @@ import org.springframework.stereotype.Component;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.util.List;
 
 /**
  * 任务对象数据库操作对象
@@ -72,6 +73,14 @@ public class NodeRepository {
                 .append("where node_id = ?");
         Object objs[] = {node.getNodeId()};
         return jdbcTemplate.update(sb.toString(), objs);
+    }
+
+    public List<Node> getEnableNodes(int timeout) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("select n.* from easy_job_node n  ")
+                .append("where timestampdiff(SECOND,n.update_time,now()) < ? order by node_id");
+        Object args[] = {timeout};
+        return jdbcTemplate.query(sb.toString(),args,new BeanPropertyRowMapper(Node.class));
     }
 
     public Node getByNodeId(Long nodeId) {

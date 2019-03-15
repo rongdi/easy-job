@@ -33,11 +33,35 @@ public class EasyJobConfig {
     @Value("${easyjob.pool.maxSize:10}")
     private int maxPoolSize;
 
-    @Value("${easyjob.heartBeat.seconds:10000}")
+    /**
+     * 节点心跳周期，单位秒
+     */
+    @Value("${easyjob.heartBeat.seconds:20}")
     private int heartBeatSeconds;
 
+    /**
+     * 节点心跳开关，默认开
+     */
     @Value("${easyjob.heartBeat.enable:true}")
     private boolean heartBeatEnable;
+
+    /**
+     * 恢复线程开关，默认开
+     */
+    @Value("${easyjob.recover.enable:true}")
+    private boolean recoverEnable;
+
+    /**
+     * 恢复线程周期，默认60s
+     */
+    @Value("${easyjob.recover.seconds:60}")
+    private int recoverSeconds;
+
+    /**
+     * 恢复线程重试次数，默认2次
+     */
+    @Value("${easyjob.recover.maxRetryCount:2}")
+    private int recoverMaxRetryCount;
 
     @Bean(name = "easyjobDataSource")
     @Qualifier("easyjobDataSource")
@@ -92,5 +116,29 @@ public class EasyJobConfig {
 
     public void setHeartBeatEnable(boolean heartBeatEnable) {
         this.heartBeatEnable = heartBeatEnable;
+    }
+
+    public boolean isRecoverEnable() {
+        return recoverEnable;
+    }
+
+    public void setRecoverEnable(boolean recoverEnable) {
+        this.recoverEnable = recoverEnable;
+    }
+
+    public int getRecoverSeconds() {
+        return recoverSeconds;
+    }
+
+    public void setRecoverSeconds(int recoverSeconds) {
+        this.recoverSeconds = recoverSeconds;
+    }
+
+    public int getRecoverMaxRetryCount() {
+        return recoverMaxRetryCount;
+    }
+
+    public void setRecoverMaxRetryCount(int recoverMaxRetryCount) {
+        this.recoverMaxRetryCount = recoverMaxRetryCount;
     }
 }
