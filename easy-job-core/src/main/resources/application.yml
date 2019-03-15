@@ -1,0 +1,20 @@
+easyjob:
+    datasource:
+       name: test
+       url: jdbc:mysql://localhost:3306/task_scheduling?useUnicode=true&characterEncoding=utf8&allowMultiQueries=true
+       username: root
+       password: 123456
+       driver-class-name: com.mysql.jdbc.Driver
+    node:
+      id: 1
+    pool:
+      queueSize: 1000
+      coreSize: 5
+      maxSize: 10
+    heartBeat:
+      enable: true
+      seconds: 10
+    recover:
+      enable: true
+      seconds: 30
+      maxRetryCount: 2
