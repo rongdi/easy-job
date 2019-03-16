@@ -26,12 +26,13 @@ CREATE TABLE `easy_job_node`  (
   `node_id` bigint(20) NOT NULL COMMENT '节点ID，必须唯一',
   `row_num` bigint(20) NOT NULL DEFAULT 0 COMMENT '节点序号',
   `counts` bigint(255) NOT NULL DEFAULT 0 COMMENT '执行次数',
+  `weight` int(11) NOT NULL DEFAULT 1 COMMENT '节点权重',
   `status` int(11) NOT NULL DEFAULT 1 COMMENT '节点状态，1表示可用，0表示不可用',
   `create_time` datetime NOT NULL COMMENT '创建时间',
   `update_time` datetime NOT NULL COMMENT '更新时间，用于心跳更新',
   PRIMARY KEY (`id`) USING BTREE,
   UNIQUE INDEX `idx_job_node_id`(`node_id`) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 2 CHARACTER SET = utf8 COLLATE = utf8_general_ci ROW_FORMAT = Compact;
+) ENGINE = InnoDB CHARACTER SET = utf8 COLLATE = utf8_general_ci ROW_FORMAT = Compact;
 
 -- ----------------------------
 -- Table structure for easy_job_task
@@ -54,7 +55,7 @@ CREATE TABLE `easy_job_task`  (
   `create_time` datetime NULL DEFAULT NULL COMMENT '创建时间',
   PRIMARY KEY (`id`) USING BTREE,
   INDEX `idx_tsk_next_stime`(`next_start_time`) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 5 CHARACTER SET = utf8 COLLATE = utf8_general_ci ROW_FORMAT = Compact;
+) ENGINE = InnoDB CHARACTER SET = utf8 COLLATE = utf8_general_ci ROW_FORMAT = Compact;
 
 -- ----------------------------
 -- Table structure for easy_job_task_detail
@@ -73,6 +74,6 @@ CREATE TABLE `easy_job_task_detail`  (
   `error_msg` varchar(2000) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL COMMENT '失败原因',
   PRIMARY KEY (`id`) USING BTREE,
   INDEX `idx_tskd_task_id`(`task_id`) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 37 CHARACTER SET = utf8 COLLATE = utf8_general_ci ROW_FORMAT = Compact;
+) ENGINE = InnoDB CHARACTER SET = utf8 COLLATE = utf8_general_ci ROW_FORMAT = Compact;
 
 SET FOREIGN_KEY_CHECKS = 1;
