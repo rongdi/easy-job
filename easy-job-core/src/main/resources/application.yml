@@ -6,17 +6,17 @@ easyjob:
        password: 123456
        driver-class-name: com.mysql.jdbc.Driver
     node:
-      id: 2
-      strategy: default
-      fetchPeriod: 100
-      fetchDuration: 300
+      id: 2 #节点id，不能重复
+      strategy: default #节点取任务策略,default,id_hash,least_count,weight,除了默认策略其它依赖于心跳开关
+      fetchPeriod: 100  #节点取任务周期，单位毫秒
+      fetchDuration: 300 #节点每次取还有多久执行的任务，单位秒
     pool:
-      queueSize: 1000
-      coreSize: 5
-      maxSize: 10
+      queueSize: 1000 #节点执行任务线程池的队列容量
+      coreSize: 5 #节点执行任务线程池初始线程数
+      maxSize: 10 #节点执行任务线程池最大线程数
     heartBeat:
-      enable: true
-      seconds: 10
+      enable: true #是否开启心跳，只有开启心跳上面除了默认策略的其他策略有效，下面的异常恢复线程才有效
+      seconds: 10  #节点心跳周期，单位秒，每个多少秒向数据库上报一下自己还活着
     recover:
-      enable: true
-      seconds: 30
+      enable: true #节点异常状态恢复线程是否启用，依赖于心跳开关
+      seconds: 30  #节点异常状态恢复线程每隔多少秒去处理失联节点的未完成任务，依赖于心跳开关

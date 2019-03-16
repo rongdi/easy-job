@@ -17,8 +17,30 @@ public interface Strategy {
 	 */
 	String DEFAULT = "default";
 	
+	/**
+	 * 按任务ID hash取余再和自己节点序号匹配
+	 */
+	String ID_HASH = "id_hash";
+	
+	/**
+	 * 最少执行次数
+	 */
+	String LEAST_COUNT = "least_count";
+	
+	/**
+	 * 按节点权重
+	 */
+	String WEIGHT = "weight";
+	
+	
 	public static Strategy choose(String key) {
 		switch(key) {
+			case ID_HASH:
+				return new IdHashStrategy();
+			case LEAST_COUNT:
+				return new LeastCountStrategy();
+			case WEIGHT:
+				return new WeightStrategy();
 			default:
 				return new DefaultStrategy();
 		}
