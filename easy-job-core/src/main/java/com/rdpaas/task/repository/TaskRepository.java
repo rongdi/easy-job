@@ -7,6 +7,7 @@ import com.rdpaas.task.common.TaskStatus;
 import com.rdpaas.task.serializer.JdkSerializationSerializer;
 import com.rdpaas.task.serializer.ObjectSerializer;
 import com.rdpaas.task.utils.CronExpression;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.jdbc.core.BeanPropertyRowMapper;
@@ -47,7 +48,7 @@ public class TaskRepository {
      */
     public List<Task> listPedding(int size) {
         String sql = "select id,node_id as nodeId,pid,`name`,cron_expr as cronExpr,status,fail_count as failCount,success_count as successCount,version,first_start_time as firstStartTime,next_start_time as nextStartTime,update_time as updateTime,create_time as createTime from easy_job_task where pid is null and next_start_time <= ? and status = 0 order by next_start_time limit ?";
-        Object args[] = {new Date(),size};
+        Object[] args = {new Date(),size};
         return jdbcTemplate.query(sql,args,new BeanPropertyRowMapper(Task.class));
     }
 
@@ -56,9 +57,9 @@ public class TaskRepository {
      * @param taskId 任务id
      * @return
      */
-    public List<TaskDetail> listDetail(Long taskId) {
+    public List<TaskDetail> listDetails(Long taskId) {
         String sql = "select id,node_id as nodeId,task_id as taskId,retry_count as retryCount,start_time as startTime,end_time as endTime,type,`status`,error_msg as errorMsg from easy_job_task_detail where task_id = ?";
-        Object args[] = {taskId};
+        Object[] args = {taskId};
         return jdbcTemplate.query(sql,args,new BeanPropertyRowMapper(TaskDetail.class));
     }
 
@@ -69,7 +70,7 @@ public class TaskRepository {
      */
     public List<TaskDetail> getDetailChilds(Long id) {
         String sql = "select id,pid,task_id as taskId,node_id as nodeId,retry_count as retryCount,version,status,start_time as startTime,end_time as endTime from easy_job_task_detail where pid = ?";
-        Object args[] = {id};
+        Object[] args = {id};
         List<TaskDetail> tasks = jdbcTemplate.query(sql,args,new BeanPropertyRowMapper(TaskDetail.class));
         if(tasks == null) {
             return null;
@@ -78,16 +79,16 @@ public class TaskRepository {
     }
 
     /**
-     * 列出指定任务的根任务详情
+     * 列出需要恢复的任务，需要恢复的任务是指所属执行节点已经挂了并且该任务还属于执行中的任务
      * @param timeout 超时时间
      * @return
      */
-    public List<TaskDetail> listUnRecoverDetail(int timeout,int maxRetryCount) {
+    public List<Task> listRecoverTasks(int timeout) {
         StringBuilder sb = new StringBuilder();
-        sb.append("select td.* from easy_job_task_detail td left join easy_job_node n on td.node_id = n.id ")
-                .append("where td.status < 3 and td.retry_count < ? and timestampdiff(SECOND,n.update_time,now()) > ? and td.pid is null");
-        Object args[] = {maxRetryCount,timeout};
-        return jdbcTemplate.query(sb.toString(),args,new BeanPropertyRowMapper(TaskDetail.class));
+        sb.append("select t.* from easy_job_task t left join easy_job_node n on t.node_id = n.id ")
+                .append("where t.status = 1 and timestampdiff(SECOND,n.update_time,now()) > ?");
+        Object[] args = {timeout};
+        return jdbcTemplate.query(sb.toString(),args,new BeanPropertyRowMapper(Task.class));
     }
 
     /**
@@ -97,12 +98,23 @@ public class TaskRepository {
      */
     public Task get(Long id) {
         String sql = "select id,node_id as nodeId,pid,`name`,cron_expr as cronExpr,status,fail_count as failCount,success_count as successCount,version,first_start_time as firstStartTime,next_start_time as nextStartTime,update_time as updateTime,create_time as createTime,invoke_info as invokeInfo from easy_job_task where id = ?";
-        Object args[] = {id};
+        Object[] args = {id};
         Task task = (Task)jdbcTemplate.queryForObject(sql,new BeanPropertyRowMapper(Task.class),args);
         if(task != null) {
             task.setInvokor((Invocation) serializer.deserialize(task.getInvokeInfo()));
         }
         return task;
+    }
+    
+    /**
+     * 根据指定id获取具体任务明细对象
+     * @param id
+     * @return
+     */
+    public TaskDetail getDetail(Long id) {
+    	 String sql = "select id,node_id as nodeId,task_id as taskId,retry_count as retryCount,start_time as startTime,end_time as endTime,type,`status`,error_msg as errorMsg from easy_job_task_detail where id = ?";
+         Object[] args = {id};
+         return (TaskDetail)jdbcTemplate.queryForObject(sql,new BeanPropertyRowMapper(TaskDetail.class),args);
     }
 
     /**
@@ -112,7 +124,7 @@ public class TaskRepository {
      */
     public List<Task> getChilds(Long id) {
         String sql = "select id,node_id as nodeId,pid,`name`,cron_expr as cronExpr,status,fail_count as failCount,success_count as successCount,version,first_start_time as firstStartTime,next_start_time as nextStartTime,update_time as updateTime,create_time as createTime from easy_job_task where pid = ?";
-        Object args[] = {id};
+        Object[] args = {id};
         List<Task> tasks = jdbcTemplate.query(sql,args,new BeanPropertyRowMapper(Task.class));
         if(tasks == null) {
             return null;
@@ -123,6 +135,17 @@ public class TaskRepository {
         return tasks;
     }
 
+    /**
+     * 查找在当前明细之后是否还有相同状态的同属一一个主任务对象的明细
+     * @param detail
+     * @return
+     */
+    public Long findNextId(Long taskId,Long id,TaskStatus status) {
+        String sql = "SELECT id FROM `easy_job_task_detail` WHERE task_id = ? AND id > ? and status = ? LIMIT 1";
+        Object[] args = {taskId,id,status.getId()};
+        return jdbcTemplate.queryForObject(sql,args,Long.class);
+    }
+    
     /**
      * 插入任务
      * @param task 待插入任务

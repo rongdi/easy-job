@@ -148,13 +148,6 @@ public class TaskExecutor {
             taskRepository.finish(task,detail);
             return;
         } else {
-            /**
-             * 将主任务临时更新成父任务自己已完成的状态，用于和其它状态区分,这里千万不能使用乐观锁更新，
-             * 除非再重新查出来一次，不然后面再更新成已完成就会失败，因为版本号已经变了。这里也没必要
-             * 再用乐观锁更新，因为前面已经更新拿到了这个任务，其它节点已经没有途径可以拿到这个任务了
-             */
-            task.setStatus(TaskStatus.FINISH_SELF);
-            int n1 = taskRepository.update(task);
             for (Task childTask : childTasks) {
                 //开始任务
                 TaskDetail childDetail = null;

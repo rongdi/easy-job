@@ -57,12 +57,6 @@ public class EasyJobConfig {
     @Value("${easyjob.recover.seconds:60}")
     private int recoverSeconds;
 
-    /**
-     * 恢复线程重试次数，默认2次
-     */
-    @Value("${easyjob.recover.maxRetryCount:2}")
-    private int recoverMaxRetryCount;
-
     @Bean(name = "easyjobDataSource")
     @Qualifier("easyjobDataSource")
     @ConfigurationProperties(prefix="easyjob.datasource")
@@ -134,11 +128,4 @@ public class EasyJobConfig {
         this.recoverSeconds = recoverSeconds;
     }
 
-    public int getRecoverMaxRetryCount() {
-        return recoverMaxRetryCount;
-    }
-
-    public void setRecoverMaxRetryCount(int recoverMaxRetryCount) {
-        this.recoverMaxRetryCount = recoverMaxRetryCount;
-    }
 }

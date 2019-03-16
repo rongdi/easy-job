@@ -1,37 +1,39 @@
 package com.rdpaas.task.sample;
 
 import com.rdpaas.task.annotation.Scheduled;
+
 import org.springframework.stereotype.Component;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @Component
 public class SchedulerTest {
 
-    @Scheduled(cron = "0/20 * 9-21 * * ?",parent = "test1")
+    @Scheduled(cron = "0/20 * * * * ?",parent = "test1")
     public void test2() throws InterruptedException {
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
         Thread.sleep(2000);
         System.out.println("当前时间2:"+sdf.format(new Date()));
     }
 
-    @Scheduled(cron = "0/10 * 9-21 * * ?",parent = "test2")
+    @Scheduled(cron = "0/10 * * * * ?",parent = "test2")
     public void test3() throws InterruptedException {
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
         Thread.sleep(2000);
-        int i = 1/0;
         System.out.println("当前时间3:"+sdf.format(new Date()));
     }
 
-    @Scheduled(cron = "0/10 * 9-21 * * ?")
+    @Scheduled(cron = "0/10 * * * * ?")
     public void test1() throws InterruptedException {
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
         Thread.sleep(2000);
         System.out.println("当前时间1:"+sdf.format(new Date()));
     }
 
-    @Scheduled(cron = "0/10 * 9-21 * * ?",parent = "test3")
+    @Scheduled(cron = "0/10 * * * * ?",parent = "test3")
     public void test4() throws InterruptedException {
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
         Thread.sleep(2000);

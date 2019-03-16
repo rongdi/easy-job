@@ -13,10 +13,8 @@ public enum TaskStatus {
     DOING(1),
     //异常
     ERROR(2),
-    //父任务完成,子任务还在执行中
-    FINISH_SELF(3),
     //已完成
-    FINISH(4);
+    FINISH(3);
 
     int id;
 
