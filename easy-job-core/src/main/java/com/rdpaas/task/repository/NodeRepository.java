@@ -29,7 +29,7 @@ public class NodeRepository {
     private JdbcTemplate jdbcTemplate;
 
     public long insert(Node node) {
-        String sql = "INSERT INTO easy_job_node(node_id,row_num,create_time,update_time) VALUES (?, ?, ?, ?);";
+        String sql = "INSERT INTO easy_job_node(node_id,row_num,weight,create_time,update_time) VALUES (?, ?, ?, ?);";
         KeyHolder kh = new GeneratedKeyHolder();
         jdbcTemplate.update(new PreparedStatementCreator() {
             @Override
@@ -39,8 +39,9 @@ public class NodeRepository {
                 PreparedStatement ps = con.prepareStatement(sql,new String[]{"id"});
                 ps.setLong(1,node.getNodeId());
                 ps.setLong(2,node.getRownum());
-                ps.setTimestamp(3, new java.sql.Timestamp(node.getCreateTime().getTime()));
-                ps.setTimestamp(4, new java.sql.Timestamp(node.getUpdateTime().getTime()));
+                ps.setInt(3,node.getWeight());
+                ps.setTimestamp(4, new java.sql.Timestamp(node.getCreateTime().getTime()));
+                ps.setTimestamp(5, new java.sql.Timestamp(node.getUpdateTime().getTime()));
                 return ps;
             }
         }, kh);
@@ -84,7 +85,7 @@ public class NodeRepository {
     }
 
     public Node getByNodeId(Long nodeId) {
-        String sql = "select id,node_id as nodeId,row_num as rownum,counts,create_time as createTime,update_time as updateTime from easy_job_node where node_id = ?";
+        String sql = "select id,node_id as nodeId,row_num as rownum,counts,weight,create_time as createTime,update_time as updateTime from easy_job_node where node_id = ?";
         Object objs[] = {nodeId};
         try {
             return (Node) jdbcTemplate.queryForObject(sql, new BeanPropertyRowMapper(Node.class), objs);

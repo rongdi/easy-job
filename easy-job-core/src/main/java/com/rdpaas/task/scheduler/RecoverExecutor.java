@@ -2,6 +2,9 @@ package com.rdpaas.task.scheduler;
 
 import java.util.Date;
 import java.util.List;
+import java.util.concurrent.DelayQueue;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import javax.annotation.PostConstruct;
 
@@ -40,16 +43,34 @@ public class RecoverExecutor {
     @Autowired
     private NodeRepository nodeRepository;
 
+    /**
+     * 创建节点心跳延时队列
+      */
+    private DelayQueue<DelayItem<Node>> heartBeatQueue = new DelayQueue<>();
 
+    /**
+     * 可以明确知道最多只会运行2个线程，直接使用系统自带工具
+     */
+    private ExecutorService bossPool = Executors.newFixedThreadPool(2);
+    
     @PostConstruct
     public void init() {
     	/**
-    	 * 如果恢复线程开关是开着的，以守护线程方式启动恢复线程
+    	 * 如果恢复线程开关是开着，并且心跳开关也是开着
     	 */
-    	if(config.isRecoverEnable()) {
-	    	Thread t = new Thread(new Recover());
-	    	t.setDaemon(true);
-	    	t.start();
+    	if(config.isRecoverEnable() && config.isHeartBeatEnable()) {
+    		/**
+             * 初始化一个节点到心跳队列，延时为0，用来注册节点
+             */
+            heartBeatQueue.offer(new DelayItem<>(0,new Node(config.getNodeId())));
+            /**
+             * 执行心跳线程
+             */
+            bossPool.execute(new HeartBeat());
+            /**
+             * 执行异常恢复线程
+             */
+            bossPool.execute(new Recover());
     	}
     }
 
@@ -104,7 +125,50 @@ public class RecoverExecutor {
 
     }
 
-   
+    class HeartBeat implements Runnable {
+        @Override
+        public void run() {
+            for(;;) {
+                try {
+                    /**
+                     * 时间到了就可以从延时队列拿出节点对象，然后更新时间和序号，
+                     * 最后再新建一个超时时间为心跳时间的节点对象放入延时队列，形成循环的心跳
+                     */
+                    DelayItem<Node> item = heartBeatQueue.take();
+                    if(item != null && item.getItem() != null) {
+                        Node node = item.getItem();
+                        handHeartBeat(node);
+                    }
+                    heartBeatQueue.offer(new DelayItem<>(config.getHeartBeatSeconds() * 1000,new Node(config.getNodeId())));
+                } catch (Exception e) {
+                    logger.error("task heart beat error,cause by:{} ",e);
+                }
+            }
+        }
+    }
+
+    /**
+     * 处理节点心跳
+     * @param node
+     */
+    private void handHeartBeat(Node node) {
+        if(node == null) {
+            return;
+        }
+        /**
+         * 先看看数据库是否存在这个节点
+         * 如果不存在：先查找下一个序号，然后设置到node对象中，最后插入
+         * 如果存在：直接根据nodeId更新当前节点的序号和时间
+         */
+        Node currNode= nodeRepository.getByNodeId(node.getNodeId());
+        if(currNode == null) {
+            node.setRownum(nodeRepository.getNextRownum());
+            nodeRepository.insert(node);
+        } else  {
+            nodeRepository.updateHeartBeat(node.getNodeId());
+        }
+
+    }
 
     /**
      * 选择下一个节点

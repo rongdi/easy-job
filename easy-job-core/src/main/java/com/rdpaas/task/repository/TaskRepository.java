@@ -53,6 +53,20 @@ public class TaskRepository {
     }
 
     /**
+     * 查询还有指定时间开始的主任务列表
+     * @param duration
+     * @return
+     */
+    public List<Task> listPeddingTasks(int duration) {
+    	StringBuilder sb = new StringBuilder();
+    	sb.append("SELECT id,node_id AS nodeId,pid,`name`,cron_expr AS cronExpr,STATUS,fail_count AS failCount,success_count AS successCount,VERSION,first_start_time AS firstStartTime,next_start_time AS nextStartTime,update_time AS updateTime,create_time AS createTime FROM easy_job_task ")
+    	.append("WHERE pid IS NULL AND TIMESTAMPDIFF(SECOND,NOW(),next_start_time) < ? AND STATUS = 0 ")
+    	.append("ORDER BY next_start_time");
+    	Object[] args = {duration};
+        return jdbcTemplate.query(sb.toString(),args,new BeanPropertyRowMapper(Task.class));
+    }
+    
+    /**
      * 列出指定任务的任务详情
      * @param taskId 任务id
      * @return

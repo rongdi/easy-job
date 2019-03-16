@@ -14,7 +14,25 @@ public class EasyJobConfig {
 
     @Value("${easyjob.node.id:1}")
     private Long nodeId;
+    
+    /**
+     * 节点取任务的策略
+     */
+    @Value("${easyjob.node.strategy:default}")
+    private String nodeStrategy;
 
+    /**
+     * 节点取任务的周期，单位是毫秒，默认100毫秒
+     */
+    @Value("${easyjob.node.fetchPeriod:100}")
+    private int fetchPeriod;
+    
+    /**
+     * 节点取任务据当前的时间段，比如每次取还有5分钟开始的任务，这里单位是秒
+     */
+    @Value("${easyjob.node.fetchDuration:300}")
+    private int fetchDuration;
+    
     /**
      * 线程池中队列大小
      */
@@ -72,7 +90,31 @@ public class EasyJobConfig {
         this.nodeId = nodeId;
     }
 
-    public int getQueueSize() {
+    public String getNodeStrategy() {
+		return nodeStrategy;
+	}
+
+	public void setNodeStrategy(String nodeStrategy) {
+		this.nodeStrategy = nodeStrategy;
+	}
+
+	public int getFetchPeriod() {
+		return fetchPeriod;
+	}
+
+	public void setFetchPeriod(int fetchPeriod) {
+		this.fetchPeriod = fetchPeriod;
+	}
+
+	public int getFetchDuration() {
+		return fetchDuration;
+	}
+
+	public void setFetchDuration(int fetchDuration) {
+		this.fetchDuration = fetchDuration;
+	}
+
+	public int getQueueSize() {
         return queueSize;
     }
 

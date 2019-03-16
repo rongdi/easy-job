@@ -4,12 +4,16 @@ import com.rdpaas.task.common.*;
 import com.rdpaas.task.config.EasyJobConfig;
 import com.rdpaas.task.repository.NodeRepository;
 import com.rdpaas.task.repository.TaskRepository;
+import com.rdpaas.task.strategy.Strategy;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
+
+import java.util.Date;
 import java.util.List;
 import java.util.concurrent.*;
 
@@ -38,45 +42,79 @@ public class TaskExecutor {
     private DelayQueue<DelayItem<Node>> heartBeatQueue = new DelayQueue<>();
 
     /**
-     * 可以明确知道最多只会运行两个线程，直接使用系统自带工具就可以了
+     * 创建任务到期延时队列
+      */
+    private DelayQueue<DelayItem<Task>> taskQueue = new DelayQueue<>();
+
+    /**
+     * 可以明确知道最多只会运行2个线程，直接使用系统自带工具就可以了
      */
     private ExecutorService bossPool = Executors.newFixedThreadPool(2);
 
+    /**
+     * 声明工作线程池
+     */
     private ThreadPoolExecutor workerPool;
+    
+    /**
+     * 获取任务的策略
+     */
+    private Strategy strategy;
 
 
     @PostConstruct
     public void init() {
-        /**
+    	/**
+    	 * 根据配置选择一个节点获取任务的策略
+    	 */
+    	strategy = Strategy.choose(config.getNodeStrategy());
+    	/**
          * 自定义线程池，初始线程数量corePoolSize，线程池等待队列大小queueSize，当初始线程都有任务，并且等待队列满后
          * 线程数量会自动扩充最大线程数maxSize，当新扩充的线程空闲60s后自动回收.自定义线程池是因为Executors那几个线程工具
          * 各有各的弊端，不适合生产使用
          */
         workerPool = new ThreadPoolExecutor(config.getCorePoolSize(), config.getMaxPoolSize(), 60, TimeUnit.SECONDS, new ArrayBlockingQueue<>(config.getQueueSize()));
         /**
-         * 初始化一个节点到心跳队列，延时为0，用来注册节点
+         * 执行待处理任务加载线程
          */
-        heartBeatQueue.offer(new DelayItem<>(0,new Node(config.getNodeId())));
-        bossPool.execute(new Boss());
+        bossPool.execute(new Loader());
         /**
-         * 如果心跳开关打开,假如心跳线程
+         * 执行任务调度线程
          */
-        if(config.isHeartBeatEnable()) {
-            bossPool.execute(new HeartBeat());
-        }
+        bossPool.execute(new Boss());
+    
     }
 
-    class Boss implements Runnable {
-        @Override
-        public void run() {
-            for (;;) {
-                try {
-                    /**
-                     * 查找待执行的任务
-                     */
-                    List<Task> tasks = taskRepository.listPedding(config.getQueueSize());
-                    for(Task task:tasks) {
-                        task.setStatus(TaskStatus.DOING);
+    class Loader implements Runnable {
+
+		@Override
+		public void run() {
+			for(;;) {
+				try { 
+					/**
+	                 * 先获取可用的节点列表
+	                 */
+	                List<Node> nodes = nodeRepository.getEnableNodes(config.getHeartBeatSeconds() * 2);
+	            	if(nodes == null || nodes.isEmpty()) {
+	            		continue;
+	            	}
+	                /**
+	                 * 查找还有指定时间(单位秒)开始的主任务列表
+	                 */
+	                List<Task> tasks = taskRepository.listPeddingTasks(config.getFetchDuration());
+	                if(tasks == null || tasks.isEmpty()) {
+	                	continue;
+	                }
+	                for(Task task:tasks) {
+	                	
+	                	boolean accept = strategy.accept(nodes, task, config.getNodeId());
+                        /**
+                         * 不该自己拿就不要抢
+                         */
+                    	if(!accept) {
+                        	continue;
+                        }
+                    	task.setStatus(TaskStatus.DOING);
                         task.setNodeId(config.getNodeId());
                         /**
                          * 使用乐观锁尝试更新状态，如果更新成功，其他节点就不会更新成功。如果在查询待执行任务列表
@@ -84,16 +122,43 @@ public class TaskExecutor {
                          * 必然会返回0了
                          */
                         int n = taskRepository.updateWithVersion(task);
-                        if(n > 0) {
-                            task = taskRepository.get(task.getId());
-                            workerPool.execute(new Worker(task));
-                        } else {
-                            continue;
+                        Date nextStartTime = task.getNextStartTime();
+                        if(n == 0 || nextStartTime == null) {
+                        	continue;
                         }
+                        /**
+                         * 封装成延时对象放入延时队列
+                         */
+                        task = taskRepository.get(task.getId());
+                        DelayItem<Task> delayItem = new DelayItem<Task>(nextStartTime.getTime() - new Date().getTime(), task);
+                        taskQueue.offer(delayItem);
+                    	
+	                }
+	                Thread.sleep(config.getFetchPeriod());
+				} catch(Exception e) {
+					logger.error("fetch task list failed,cause by:{}", e);
+				}
+			}
+		}
+    	
+    }
+    
+    class Boss implements Runnable {
+        @Override
+        public void run() {
+            for (;;) {
+                try {
+                	 /**
+                     * 时间到了就可以从延时队列拿出任务对象,然后交给worker线程池去执行
+                     */
+                    DelayItem<Task> item = taskQueue.take();
+                    if(item != null && item.getItem() != null) {
+                        Task task = item.getItem();
+                        workerPool.execute(new Worker(task));
                     }
-                    Thread.sleep(10);
+                	 
                 } catch (Exception e) {
-                    logger.error("Get next task failed,cause by:{}", e);
+                    logger.error("fetch task failed,cause by:{}", e);
                 }
             }
         }
@@ -181,51 +246,6 @@ public class TaskExecutor {
              */
             taskRepository.finish(task,detail);
 
-        }
-
-    }
-
-    class HeartBeat implements Runnable {
-        @Override
-        public void run() {
-            for(;;) {
-                try {
-                    /**
-                     * 时间到了就可以从延时队列拿出节点对象，然后更新时间和序号，
-                     * 最后再新建一个超时时间为心跳时间的节点对象放入延时队列，形成循环的心跳
-                     */
-                    DelayItem<Node> item = heartBeatQueue.take();
-                    if(item != null && item.getItem() != null) {
-                        Node node = item.getItem();
-                        handHeartBeat(node);
-                    }
-                    heartBeatQueue.offer(new DelayItem<>(config.getHeartBeatSeconds() * 1000,new Node(config.getNodeId())));
-                } catch (Exception e) {
-                    logger.error("task heart beat error,cause by:{} ",e);
-                }
-            }
-        }
-    }
-
-    /**
-     * 处理节点心跳
-     * @param node
-     */
-    private void handHeartBeat(Node node) {
-        if(node == null) {
-            return;
-        }
-        /**
-         * 先看看数据库是否存在这个节点
-         * 如果不存在：先查找下一个序号，然后设置到node对象中，最后插入
-         * 如果存在：直接根据nodeId更新当前节点的序号和时间
-         */
-        Node currNode= nodeRepository.getByNodeId(node.getNodeId());
-        if(currNode == null) {
-            node.setRownum(nodeRepository.getNextRownum());
-            nodeRepository.insert(node);
-        } else  {
-            nodeRepository.updateHeartBeat(node.getNodeId());
         }
 
     }

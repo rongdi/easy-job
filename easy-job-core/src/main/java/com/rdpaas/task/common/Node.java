@@ -30,6 +30,11 @@ public class Node {
      * 执行任务次数
      */
     private Long counts;
+    
+    /**
+     * 权重，默认都是1
+     */
+    private Integer weight = 1;
 
     /**
      * 节点创建时间
@@ -80,7 +85,15 @@ public class Node {
         this.counts = counts;
     }
 
-    public Date getCreateTime() {
+    public Integer getWeight() {
+		return weight;
+	}
+
+	public void setWeight(Integer weight) {
+		this.weight = weight;
+	}
+
+	public Date getCreateTime() {
         return createTime;
     }
 

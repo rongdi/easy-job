@@ -7,6 +7,9 @@ easyjob:
        driver-class-name: com.mysql.jdbc.Driver
     node:
       id: 2
+      strategy: default
+      fetchPeriod: 100
+      fetchDuration: 300
     pool:
       queueSize: 1000
       coreSize: 5
