@@ -37,11 +37,6 @@ public class TaskExecutor {
     private EasyJobConfig config;
 
     /**
-     * 创建节点心跳延时队列
-      */
-    private DelayQueue<DelayItem<Node>> heartBeatQueue = new DelayQueue<>();
-
-    /**
      * 创建任务到期延时队列
       */
     private DelayQueue<DelayItem<Task>> taskQueue = new DelayQueue<>();
@@ -199,7 +194,7 @@ public class TaskExecutor {
     }
 
     /**
-     * 完成子任务，如果父任务失败了，子任务不会执行,子任务失败了，父任务状态也是失败的
+     * 完成子任务，如果父任务失败了，子任务不会执行
      * @param task
      * @param detail
      * @throws Exception
