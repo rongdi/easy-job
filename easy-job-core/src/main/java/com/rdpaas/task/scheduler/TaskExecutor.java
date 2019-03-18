@@ -94,9 +94,9 @@ public class TaskExecutor {
 	            		continue;
 	            	}
 	                /**
-	                 * 查找还有指定时间(单位秒)开始的主任务列表
+	                 * 查找还有指定时间(单位秒)才开始的主任务列表
 	                 */
-	                List<Task> tasks = taskRepository.listPeddingTasks(config.getFetchDuration());
+	                List<Task> tasks = taskRepository.listNotStartedTasks(config.getFetchDuration());
 	                if(tasks == null || tasks.isEmpty()) {
 	                	continue;
 	                }
@@ -109,11 +109,14 @@ public class TaskExecutor {
                     	if(!accept) {
                         	continue;
                         }
-                    	task.setStatus(TaskStatus.DOING);
+                        /**
+                         * 先设置成待执行
+                         */
+                    	task.setStatus(TaskStatus.PENDING);
                         task.setNodeId(config.getNodeId());
                         /**
-                         * 使用乐观锁尝试更新状态，如果更新成功，其他节点就不会更新成功。如果在查询待执行任务列表
-                         * 和当前这段时间有节点已经更新了这个任务，version必然和查出来时候的version不一样了,这里更新
+                         * 使用乐观锁尝试更新状态，如果更新成功，其他节点就不会更新成功。如果其它节点也正在查询未完成的
+                         * 任务列表和当前这段时间有节点已经更新了这个任务，version必然和查出来时候的version不一样了,这里更新
                          * 必然会返回0了
                          */
                         int n = taskRepository.updateWithVersion(task);
@@ -122,7 +125,7 @@ public class TaskExecutor {
                         	continue;
                         }
                         /**
-                         * 封装成延时对象放入延时队列
+                         * 封装成延时对象放入延时队列,这里再查一次是因为上面乐观锁已经更新了版本，会导致后面结束任务更新不成功
                          */
                         task = taskRepository.get(task.getId());
                         DelayItem<Task> delayItem = new DelayItem<Task>(nextStartTime.getTime() - new Date().getTime(), task);
@@ -149,6 +152,11 @@ public class TaskExecutor {
                     DelayItem<Task> item = taskQueue.take();
                     if(item != null && item.getItem() != null) {
                         Task task = item.getItem();
+                        /**
+                         * 真正开始执行了设置成执行中
+                         */
+                        task.setStatus(TaskStatus.DOING);
+                        taskRepository.update(task);
                         workerPool.execute(new Worker(task));
                     }
                 	 

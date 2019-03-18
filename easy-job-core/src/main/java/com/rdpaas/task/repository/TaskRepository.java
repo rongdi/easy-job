@@ -42,22 +42,11 @@ public class TaskRepository {
     private ObjectSerializer serializer = new JdkSerializationSerializer<Invocation>();
 
     /**
-     * 列出所有待处理的非子任务
-     * @param size 条数
-     * @return
-     */
-    public List<Task> listPedding(int size) {
-        String sql = "select id,node_id as nodeId,pid,`name`,cron_expr as cronExpr,status,fail_count as failCount,success_count as successCount,version,first_start_time as firstStartTime,next_start_time as nextStartTime,update_time as updateTime,create_time as createTime from easy_job_task where pid is null and next_start_time <= ? and status = 0 order by next_start_time limit ?";
-        Object[] args = {new Date(),size};
-        return jdbcTemplate.query(sql,args,new BeanPropertyRowMapper(Task.class));
-    }
-
-    /**
-     * 查询还有指定时间开始的主任务列表
+     * 查询还需要指定时间才开始的主任务列表
      * @param duration
      * @return
      */
-    public List<Task> listPeddingTasks(int duration) {
+    public List<Task> listNotStartedTasks(int duration) {
     	StringBuilder sb = new StringBuilder();
     	sb.append("SELECT id,node_id AS nodeId,pid,`name`,cron_expr AS cronExpr,STATUS,fail_count AS failCount,success_count AS successCount,VERSION,first_start_time AS firstStartTime,next_start_time AS nextStartTime,update_time AS updateTime,create_time AS createTime FROM easy_job_task ")
     	.append("WHERE pid IS NULL AND TIMESTAMPDIFF(SECOND,NOW(),next_start_time) < ? AND STATUS = 0 ")
@@ -100,7 +89,7 @@ public class TaskRepository {
     public List<Task> listRecoverTasks(int timeout) {
         StringBuilder sb = new StringBuilder();
         sb.append("select t.* from easy_job_task t left join easy_job_node n on t.node_id = n.id ")
-                .append("where t.status = 1 and timestampdiff(SECOND,n.update_time,now()) > ?");
+                .append("where (t.status = 2 or t.status = 1) and timestampdiff(SECOND,n.update_time,now()) > ?");
         Object[] args = {timeout};
         return jdbcTemplate.query(sb.toString(),args,new BeanPropertyRowMapper(Task.class));
     }
@@ -151,7 +140,6 @@ public class TaskRepository {
 
     /**
      * 查找在当前明细之后是否还有相同状态的同属一一个主任务对象的明细
-     * @param detail
      * @return
      */
     public Long findNextId(Long taskId,Long id,TaskStatus status) {
@@ -264,7 +252,7 @@ public class TaskRepository {
         if(nextStartDate == null) {
             task.setStatus(TaskStatus.FINISH);
         } else {
-            task.setStatus(TaskStatus.PENDING);
+            task.setStatus(TaskStatus.NOT_STARTED);
         }
         /**
          * 增加任务成功次数

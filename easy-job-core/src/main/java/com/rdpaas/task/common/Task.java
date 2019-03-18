@@ -32,9 +32,9 @@ public class Task {
     private Long nodeId;
 
     /**
-     * 状态，0表示待执行，1表示执行中，2表示已完成
+     * 状态，0表示未开始，1表示待执行，2表示执行中，3表示已完成
      */
-    private TaskStatus status = TaskStatus.PENDING;
+    private TaskStatus status = TaskStatus.NOT_STARTED;
 
     /**
      * 成功次数

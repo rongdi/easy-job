@@ -7,14 +7,16 @@ package com.rdpaas.task.common;
  */
 public enum TaskStatus {
 
+    //未开始
+    NOT_STARTED(0),
     //待执行
-    PENDING(0),
+    PENDING(1),
     //执行中
-    DOING(1),
+    DOING(2),
     //异常
-    ERROR(2),
+    ERROR(3),
     //已完成
-    FINISH(3);
+    FINISH(4);
 
     int id;
 
@@ -28,6 +30,8 @@ public enum TaskStatus {
 
     public  static TaskStatus  valueOf(int id) {
         switch (id) {
+            case 0:
+                return PENDING;
             case 1:
                 return DOING;
             case 2:
@@ -35,7 +39,7 @@ public enum TaskStatus {
             case 3:
                 return FINISH;
             default:
-                return PENDING;
+                return NOT_STARTED;
         }
     }
 
