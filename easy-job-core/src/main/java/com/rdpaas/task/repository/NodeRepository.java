@@ -29,7 +29,7 @@ public class NodeRepository {
     private JdbcTemplate jdbcTemplate;
 
     public long insert(Node node) {
-        String sql = "INSERT INTO easy_job_node(node_id,row_num,weight,create_time,update_time) VALUES (?, ?, ?, ?);";
+        String sql = "INSERT INTO easy_job_node(node_id,row_num,weight,create_time,update_time) VALUES (?, ?, ?, ?, ?);";
         KeyHolder kh = new GeneratedKeyHolder();
         jdbcTemplate.update(new PreparedStatementCreator() {
             @Override
