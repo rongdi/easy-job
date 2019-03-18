@@ -18,6 +18,7 @@
 
 	 <modules>
         <module>easy-job-core</module>
+         <module>easy-job-sample</module>
     </modules>
 
     <properties>
