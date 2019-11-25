@@ -15,7 +15,6 @@ CREATE TABLE `easy_job_node` (
 
 CREATE TABLE `easy_job_task` (
   `id` bigint(20) NOT NULL AUTO_INCREMENT,
-  
   `pid` bigint(20) DEFAULT NULL COMMENT '任务父id,用于实现依赖任务，限制性父任务再执行子任务',
   `name` varchar(255) DEFAULT NULL COMMENT '调度名称',
   `cron_expr` varchar(255) DEFAULT NULL COMMENT 'cron表达式',
@@ -38,8 +37,7 @@ CREATE TABLE `easy_job_task_detail` (
   `pid` bigint(20) DEFAULT NULL COMMENT '所属明细父ID',
   `task_id` bigint(20) NOT NULL COMMENT '所属任务ID',
   `node_id` bigint(20) NOT NULL COMMENT '执行节点id',
-  `retry_count` int(8) NOT NULL DEFAULT 0 COMMENT '重试次数',
-
+  `retry_count` int(8) NOT NULL DEFAULT '0' COMMENT '重试次数',
   `version` int(8) DEFAULT NULL COMMENT '乐观锁标识',
   `start_time` datetime DEFAULT NULL COMMENT '开始时间',
   `end_time` datetime DEFAULT NULL COMMENT '结束时间',
