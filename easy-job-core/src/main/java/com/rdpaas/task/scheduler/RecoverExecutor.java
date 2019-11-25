@@ -1,24 +1,22 @@
 package com.rdpaas.task.scheduler;
 
-import java.util.Date;
-import java.util.List;
-import java.util.concurrent.DelayQueue;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-
-import javax.annotation.PostConstruct;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
-
 import com.rdpaas.task.common.Node;
 import com.rdpaas.task.common.Task;
 import com.rdpaas.task.common.TaskStatus;
 import com.rdpaas.task.config.EasyJobConfig;
 import com.rdpaas.task.repository.NodeRepository;
 import com.rdpaas.task.repository.TaskRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+
+import javax.annotation.PostConstruct;
+import java.util.Date;
+import java.util.List;
+import java.util.concurrent.DelayQueue;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
  * 恢复调度器，恢复那些属于失联的节点的未完成的任务，异常也是一种任务状态的终点，
@@ -178,7 +176,7 @@ public class RecoverExecutor {
      * @return
      */
     private long chooseNodeId(List<Node> nodes,long maxNodeId,long nodeId) {
-        if(nodeId > maxNodeId) {
+        if(nodes.size() == 0 || nodeId >= maxNodeId) {
             return nodes.get(0).getNodeId();
         }
         return nodes.stream().filter(node -> node.getNodeId() > nodeId).findFirst().get().getNodeId();
