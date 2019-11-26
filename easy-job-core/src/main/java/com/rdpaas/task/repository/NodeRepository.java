@@ -31,7 +31,7 @@ public class NodeRepository {
     private JdbcTemplate jdbcTemplate;
 
     public long insert(Node node) {
-        String sql = "INSERT INTO easy_job_node(node_id,row_num,weight,create_time,update_time) VALUES (?, ?, ?, ?, ?);";
+        String sql = "INSERT INTO easy_job_node(node_id,row_num,weight,notify_cmd,create_time,update_time) VALUES (?, ?, ?, ?, ?, ?);";
         KeyHolder kh = new GeneratedKeyHolder();
         jdbcTemplate.update(new PreparedStatementCreator() {
             @Override
@@ -42,8 +42,9 @@ public class NodeRepository {
                 ps.setLong(1,node.getNodeId());
                 ps.setLong(2,node.getRownum());
                 ps.setInt(3,node.getWeight());
-                ps.setTimestamp(4, new java.sql.Timestamp(node.getCreateTime().getTime()));
-                ps.setTimestamp(5, new java.sql.Timestamp(node.getUpdateTime().getTime()));
+                ps.setInt(4,node.getNotifyCmd().getId());
+                ps.setTimestamp(5, new java.sql.Timestamp(node.getCreateTime().getTime()));
+                ps.setTimestamp(6, new java.sql.Timestamp(node.getUpdateTime().getTime()));
                 return ps;
             }
         }, kh);

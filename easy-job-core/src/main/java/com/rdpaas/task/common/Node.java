@@ -39,7 +39,7 @@ public class Node {
     /**
      * 通知指令
      */
-    private NotifyCmd notifyCmd;
+    private NotifyCmd notifyCmd = NotifyCmd.NO_NOTIFY;
 
     /**
      * 通知值

@@ -1,6 +1,7 @@
 package com.rdpaas.task.annotation;
 
 import com.rdpaas.task.common.Invocation;
+import com.rdpaas.task.repository.TaskRepository;
 import com.rdpaas.task.scheduler.TaskExecutor;
 import com.rdpaas.task.utils.Delimiters;
 import org.apache.commons.lang3.StringUtils;
@@ -12,6 +13,7 @@ import org.springframework.stereotype.Component;
 
 import java.lang.reflect.Method;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -26,13 +28,29 @@ public class ContextRefreshedListener implements ApplicationListener<ContextRefr
     @Autowired
     private TaskExecutor taskExecutor;
 
+    @Autowired
+    private TaskRepository taskRepository;
+
     /**
      * 用来保存方法名/任务名和任务插入后数据库的ID的映射,用来处理子任务新增用
      */
     private Map<String,Long> taskIdMap = new HashMap<>();
 
+    /**
+     * 存放数据库所有的任务名称
+     */
+    private List<String> allTaskNames;
+
     @Override
     public void onApplicationEvent(ContextRefreshedEvent event) {
+        /**
+         * 重启重新初始化本节点的任务状态
+         */
+        taskRepository.reInitTasks();
+        /**
+         * 查出数据库所有的任务名称
+         */
+        allTaskNames = taskRepository.listAllTaskNames();
         /**
          * 判断根容器为Spring容器，防止出现调用两次的情况（mvc加载也会触发一次）
           */
@@ -115,6 +133,7 @@ public class ContextRefreshedListener implements ApplicationListener<ContextRefr
         Scheduled sAnn = m.getAnnotation(Scheduled.class);
         String cron = sAnn.cron();
         String parent = sAnn.parent();
+        String finalName = clazz.getName() + Delimiters.DOT + name;
         /**
          * 如果parent为空，说明该方法代表的任务是根任务，则添加到任务调度器中，并且保存在全局map中
          * 如果parent不为空，则表示是子任务，子任务需要知道父任务的id
@@ -124,9 +143,9 @@ public class ContextRefreshedListener implements ApplicationListener<ContextRefr
          * 如果找到父任务ID，则添加子任务
          */
         if(StringUtils.isEmpty(parent)) {
-            if(!taskIdMap.containsKey(clazz.getName() + Delimiters.DOT + name)) {
-                Long taskId = taskExecutor.addTask(name, cron, new Invocation(clazz, name, new Class[]{}, new Object[]{}));
-                taskIdMap.put(clazz.getName() + Delimiters.DOT + name, taskId);
+            if(!taskIdMap.containsKey(finalName) && !allTaskNames.contains(finalName)) {
+                Long taskId = taskExecutor.addTask(finalName, cron, new Invocation(clazz, name, new Class[]{}, new Object[]{}));
+                taskIdMap.put(finalName, taskId);
             }
         } else {
             String parentMethodName = parent.lastIndexOf(Delimiters.DOT) == -1 ? clazz.getName() + Delimiters.DOT + parent : parent;
@@ -139,9 +158,9 @@ public class ContextRefreshedListener implements ApplicationListener<ContextRefr
                  */
                 parentTaskId = taskIdMap.get(parentMethodName);
             }
-            if(parentTaskId != null && !taskIdMap.containsKey(clazz.getName() + Delimiters.DOT + name)) {
-                Long taskId = taskExecutor.addChildTask(parentTaskId, name, cron, new Invocation(clazz, name, new Class[]{}, new Object[]{}));
-                taskIdMap.put(clazz.getName() + Delimiters.DOT + name, taskId);
+            if(parentTaskId != null && !taskIdMap.containsKey(finalName)  && !allTaskNames.contains(finalName)) {
+                Long taskId = taskExecutor.addChildTask(parentTaskId, finalName, cron, new Invocation(clazz, name, new Class[]{}, new Object[]{}));
+                taskIdMap.put(finalName, taskId);
             }
 
         }

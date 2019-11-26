@@ -4,10 +4,10 @@ import com.rdpaas.task.common.Invocation;
 import com.rdpaas.task.common.Task;
 import com.rdpaas.task.common.TaskDetail;
 import com.rdpaas.task.common.TaskStatus;
+import com.rdpaas.task.config.EasyJobConfig;
 import com.rdpaas.task.serializer.JdkSerializationSerializer;
 import com.rdpaas.task.serializer.ObjectSerializer;
 import com.rdpaas.task.utils.CronExpression;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.jdbc.core.BeanPropertyRowMapper;
@@ -36,6 +36,8 @@ public class TaskRepository {
     @Qualifier("easyjobJdbcTemplate")
     private JdbcTemplate jdbcTemplate;
 
+    @Autowired
+    private EasyJobConfig config;
     /**
      * 序列化工具类
      */
@@ -53,6 +55,17 @@ public class TaskRepository {
     	.append("ORDER BY next_start_time");
     	Object[] args = {duration};
         return jdbcTemplate.query(sb.toString(),args,new BeanPropertyRowMapper(Task.class));
+    }
+
+    /**
+     * 查找所有的任务名称
+     * @return
+     */
+    public List<String> listAllTaskNames() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("SELECT `name` FROM easy_job_task ");
+        Object[] args = {};
+        return jdbcTemplate.queryForList(sb.toString(),args,String.class);
     }
     
     /**
@@ -294,6 +307,21 @@ public class TaskRepository {
     }
 
     /**
+     * 重启服务后，重新把本节点的任务初始化为初始状态
+     * @return
+     * @throws Exception
+     */
+    public int reInitTasks()  {
+        StringBuilder sb = new StringBuilder();
+        List<Object> objs = new ArrayList<>();
+        sb.append("update easy_job_task set status = ? ");
+        sb.append("where node_id = ?");
+        objs.add(TaskStatus.NOT_STARTED.getId());
+        objs.add(config.getNodeId());
+        return jdbcTemplate.update(sb.toString(), objs.toArray());
+    }
+
+    /**
      * 使用乐观锁更新任务
      * @param task 待更新任务
      * @return
@@ -370,7 +398,6 @@ public class TaskRepository {
             objs.add(task.getCronExpr());
         }
         sb.append("where id = ?");
-        objs.add(task.getVersion());
         objs.add(task.getId());
         return jdbcTemplate.update(sb.toString(), objs.toArray());
     }

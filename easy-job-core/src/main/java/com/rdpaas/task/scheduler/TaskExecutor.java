@@ -284,4 +284,15 @@ public class TaskExecutor {
         return taskRepository.insert(task);
     }
 
+    /**
+     * 立即执行任务，就是设置一下延时为0加入任务队列就好了
+     * @param taskId
+     * @return
+     */
+    public boolean startNow(Long taskId) {
+        Task task = taskRepository.get(taskId);
+        DelayItem<Task> delayItem = new DelayItem<Task>(0L, task);
+        return taskQueue.offer(delayItem);
+    }
+
 }
