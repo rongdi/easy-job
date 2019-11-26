@@ -1,6 +1,7 @@
 package com.rdpaas.task.repository;
 
 import com.rdpaas.task.common.Node;
+import com.rdpaas.task.common.NotifyCmd;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -14,6 +15,7 @@ import org.springframework.stereotype.Component;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -64,6 +66,26 @@ public class NodeRepository {
     }
 
     /**
+     * 更新所有节点的通知信息,实现修改任务，停止任务通知等
+     * @param nodeId 需要通知的节点id，为0或者null则表示通知所有节点
+     * @param cmd 通知指令
+     * @param notifyValue 通知的值，一般存id
+     * @return
+     */
+    public int updateNotifyInfo(Long nodeId, NotifyCmd cmd,String notifyValue) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("update easy_job_node set notify_cmd = ?,notify_value = ? ");
+        List<Object> objList = new ArrayList<>();
+        objList.add(cmd.getId());
+        objList.add(notifyValue);
+        if(nodeId != null && nodeId != 0) {
+            sb.append("where node_id = ?");
+            objList.add(nodeId);
+        }
+        return jdbcTemplate.update(sb.toString(), objList.toArray());
+    }
+
+    /**
      * 禁用节点
      * @param node
      * @return
@@ -78,14 +100,14 @@ public class NodeRepository {
 
     public List<Node> getEnableNodes(int timeout) {
         StringBuilder sb = new StringBuilder();
-        sb.append("select n.* from easy_job_node n  ")
+        sb.append("select id,node_id as nodeId,row_num as rownum,counts,weight,status,notify_cmd as notifyCmd,notify_value as notifyValue,create_time as createTime,update_time as updateTime from easy_job_node n  ")
                 .append("where timestampdiff(SECOND,n.update_time,now()) < ? order by node_id");
         Object args[] = {timeout};
         return jdbcTemplate.query(sb.toString(),args,new BeanPropertyRowMapper(Node.class));
     }
 
     public Node getByNodeId(Long nodeId) {
-        String sql = "select id,node_id as nodeId,row_num as rownum,counts,weight,create_time as createTime,update_time as updateTime from easy_job_node where node_id = ?";
+        String sql = "select id,node_id as nodeId,row_num as rownum,counts,weight,status,notify_cmd as notifyCmd,notify_value as notifyValue,create_time as createTime,update_time as updateTime from easy_job_node where node_id = ?";
         Object objs[] = {nodeId};
         try {
             return (Node) jdbcTemplate.queryForObject(sql, new BeanPropertyRowMapper(Node.class), objs);

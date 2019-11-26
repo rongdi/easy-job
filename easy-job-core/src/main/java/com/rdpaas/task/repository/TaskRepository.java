@@ -324,6 +324,10 @@ public class TaskRepository {
             sb.append(",node_id = ? ");
             objs.add(task.getNodeId());
         }
+        if(task.getCronExpr() != null) {
+            sb.append(",cron_expr = ? ");
+            objs.add(task.getCronExpr());
+        }
         sb.append("where version = ? and id = ?");
         objs.add(task.getVersion());
         objs.add(task.getId());
@@ -361,7 +365,11 @@ public class TaskRepository {
             sb.append(",node_id = ? ");
             objs.add(task.getNodeId());
         }
-        sb.append("where version = ? and id = ?");
+        if(task.getCronExpr() != null) {
+            sb.append(",cron_expr = ? ");
+            objs.add(task.getCronExpr());
+        }
+        sb.append("where id = ?");
         objs.add(task.getVersion());
         objs.add(task.getId());
         return jdbcTemplate.update(sb.toString(), objs.toArray());

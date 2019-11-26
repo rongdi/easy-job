@@ -156,6 +156,9 @@ public class TaskExecutor {
                          * 真正开始执行了设置成执行中
                          */
                         task.setStatus(TaskStatus.DOING);
+                        /**
+                         * loader线程中已经使用乐观锁控制了，这里没必要了
+                         */
                         taskRepository.update(task);
                         workerPool.execute(new Worker(task));
                     }
@@ -266,6 +269,15 @@ public class TaskExecutor {
         return taskRepository.insert(task);
     }
 
+    /**
+     * 添加子任务
+     * @param pid
+     * @param name
+     * @param cronExp
+     * @param invockor
+     * @return
+     * @throws Exception
+     */
     public long addChildTask(Long pid,String name, String cronExp, Invocation invockor) throws Exception {
         Task task = new Task(name,cronExp,invockor);
         task.setPid(pid);

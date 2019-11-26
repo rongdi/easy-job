@@ -37,6 +37,16 @@ public class Node {
     private Integer weight = 1;
 
     /**
+     * 通知指令
+     */
+    private NotifyCmd notifyCmd;
+
+    /**
+     * 通知值
+     */
+    private String notifyValue;
+
+    /**
      * 节点创建时间
      */
     private Date createTime = new Date();
@@ -113,7 +123,23 @@ public class Node {
         return status;
     }
 
-    public void setStatus(NodeStatus status) {
-        this.status = status;
+    public void setStatus(int status) {
+        this.status = NodeStatus.valueOf(status);
+    }
+
+    public NotifyCmd getNotifyCmd() {
+        return notifyCmd;
+    }
+
+    public void setNotifyCmd(int notifyCmd) {
+        this.notifyCmd = NotifyCmd.valueOf(notifyCmd);
+    }
+
+    public String getNotifyValue() {
+        return notifyValue;
+    }
+
+    public void setNotifyValue(String notifyValue) {
+        this.notifyValue = notifyValue;
     }
 }

@@ -166,6 +166,9 @@ public class RecoverExecutor {
             nodeRepository.updateHeartBeat(node.getNodeId());
         }
 
+        /**
+         * TODO 借助心跳做一下通知的事情，比如及时停止指定的任务啥的
+         */
     }
 
     /**

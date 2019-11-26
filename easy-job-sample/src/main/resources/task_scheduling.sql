@@ -46,3 +46,7 @@ CREATE TABLE `easy_job_task_detail` (
   PRIMARY KEY (`id`),
   KEY `idx_tskd_task_id` (`task_id`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+ALTER TABLE `easy_job`.`easy_job_node`
+ADD COLUMN `notify_cmd` varchar(255) NULL COMMENT '通知指令' AFTER `status`,
+ADD COLUMN `notify_value` varchar(255) NULL COMMENT '通知值，一般记录id啥的' AFTER `notify_cmd`;
