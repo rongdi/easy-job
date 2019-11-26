@@ -68,21 +68,34 @@ public class NodeRepository {
 
     /**
      * 更新所有节点的通知信息,实现修改任务，停止任务通知等
-     * @param nodeId 需要通知的节点id，为0或者null则表示通知所有节点
      * @param cmd 通知指令
      * @param notifyValue 通知的值，一般存id
      * @return
      */
-    public int updateNotifyInfo(Long nodeId, NotifyCmd cmd,String notifyValue) {
+    public int updateNotifyInfo(NotifyCmd cmd,String notifyValue) {
         StringBuilder sb = new StringBuilder();
         sb.append("update easy_job_node set notify_cmd = ?,notify_value = ? ");
         List<Object> objList = new ArrayList<>();
         objList.add(cmd.getId());
         objList.add(notifyValue);
-        if(nodeId != null && nodeId != 0) {
-            sb.append("where node_id = ?");
-            objList.add(nodeId);
-        }
+
+        return jdbcTemplate.update(sb.toString(), objList.toArray());
+    }
+
+    /**
+     * 当通知执行完后使用乐观锁重置通知信息
+     * @param cmd
+     * @return
+     */
+    public int resetNotifyInfo(NotifyCmd cmd) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("update easy_job_node set notify_cmd = ?,notify_value = ? ");
+        sb.append("where notify_cmd = ?");
+        List<Object> objList = new ArrayList<>();
+        objList.add(NotifyCmd.NO_NOTIFY);
+        objList.add("");
+        objList.add(cmd.getId());
+
         return jdbcTemplate.update(sb.toString(), objList.toArray());
     }
 

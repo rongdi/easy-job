@@ -1,11 +1,14 @@
 package com.rdpaas.task.scheduler;
 
 import com.rdpaas.task.common.Node;
+import com.rdpaas.task.common.NotifyCmd;
 import com.rdpaas.task.common.Task;
 import com.rdpaas.task.common.TaskStatus;
 import com.rdpaas.task.config.EasyJobConfig;
+import com.rdpaas.task.handles.NotifyHandler;
 import com.rdpaas.task.repository.NodeRepository;
 import com.rdpaas.task.repository.TaskRepository;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -164,11 +167,26 @@ public class RecoverExecutor {
             nodeRepository.insert(node);
         } else  {
             nodeRepository.updateHeartBeat(node.getNodeId());
+            NotifyCmd cmd = currNode.getNotifyCmd();
+            String notifyValue = currNode.getNotifyValue();
+            if(cmd != null && cmd != NotifyCmd.NO_NOTIFY) {
+                /**
+                 * 借助心跳做一下通知的事情，比如及时停止正在执行的任务
+                 * 根据指令名称查找Handler
+                 */
+                NotifyHandler handler = NotifyHandler.chooseHandler(currNode.getNotifyCmd());
+                if(handler == null || StringUtils.isEmpty(notifyValue)) {
+                    return;
+                }
+                /**
+                 * 执行操作
+                 */
+                handler.update(Long.valueOf(notifyValue));
+            }
+            
         }
 
-        /**
-         * TODO 借助心跳做一下通知的事情，比如及时停止指定的任务啥的
-         */
+
     }
 
     /**

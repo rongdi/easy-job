@@ -18,7 +18,7 @@ CREATE TABLE `easy_job_task` (
   `pid` bigint(20) DEFAULT NULL COMMENT '任务父id,用于实现依赖任务，限制性父任务再执行子任务',
   `name` varchar(255) DEFAULT NULL COMMENT '调度名称',
   `cron_expr` varchar(255) DEFAULT NULL COMMENT 'cron表达式',
-  `status` int(255) NOT NULL DEFAULT '0' COMMENT '状态，0表示未开始,1表示待执行，2表示执行中，3表示异常中，4表示已完成',
+  `status` int(255) NOT NULL DEFAULT '0' COMMENT '状态，0表示未开始,1表示待执行，2表示执行中，3表示异常中，4表示已完成，5表示已停止',
   `fail_count` int(255) NOT NULL DEFAULT '0' COMMENT '失败执行次数',
   `success_count` int(255) NOT NULL DEFAULT '0' COMMENT '成功执行次数',
   `invoke_info` varbinary(10000) DEFAULT NULL COMMENT '序列化的执行类方法信息',
@@ -41,7 +41,7 @@ CREATE TABLE `easy_job_task_detail` (
   `version` int(8) DEFAULT NULL COMMENT '乐观锁标识',
   `start_time` datetime DEFAULT NULL COMMENT '开始时间',
   `end_time` datetime DEFAULT NULL COMMENT '结束时间',
-  `status` int(8) NOT NULL DEFAULT '0' COMMENT '状态，0表示未开始,1表示待执行，2表示执行中，3表示异常中，4表示已完成',
+  `status` int(8) NOT NULL DEFAULT '0' COMMENT '状态，0表示未开始,1表示待执行，2表示执行中，3表示异常中，4表示已完成，5表示已停止',
   `error_msg` varchar(2000) DEFAULT NULL COMMENT '失败原因',
   PRIMARY KEY (`id`),
   KEY `idx_tskd_task_id` (`task_id`) USING BTREE

@@ -16,7 +16,9 @@ public enum TaskStatus {
     //异常
     ERROR(3),
     //已完成
-    FINISH(4);
+    FINISH(4),
+    //已停止
+    STOP(5);
 
     int id;
 
@@ -30,14 +32,16 @@ public enum TaskStatus {
 
     public  static TaskStatus  valueOf(int id) {
         switch (id) {
-            case 0:
-                return PENDING;
             case 1:
-                return DOING;
+                return PENDING;
             case 2:
-                return ERROR;
+                return DOING;
             case 3:
+                return ERROR;
+            case 4:
                 return FINISH;
+            case 5:
+                return STOP;
             default:
                 return NOT_STARTED;
         }

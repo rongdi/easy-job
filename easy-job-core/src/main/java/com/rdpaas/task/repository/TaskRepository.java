@@ -368,7 +368,7 @@ public class TaskRepository {
      * @return
      * @throws Exception
      */
-    public int update(Task task) throws Exception  {
+    public int update(Task task) {
         StringBuilder sb = new StringBuilder();
         List<Object> objs = new ArrayList<>();
         sb.append("update easy_job_task set next_start_time = ?");

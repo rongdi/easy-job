@@ -1,21 +1,33 @@
 package com.rdpaas.task.scheduler;
 
-import com.rdpaas.task.common.*;
+import com.rdpaas.task.common.Invocation;
+import com.rdpaas.task.common.Node;
+import com.rdpaas.task.common.NotifyCmd;
+import com.rdpaas.task.common.Task;
+import com.rdpaas.task.common.TaskDetail;
+import com.rdpaas.task.common.TaskStatus;
 import com.rdpaas.task.config.EasyJobConfig;
 import com.rdpaas.task.repository.NodeRepository;
 import com.rdpaas.task.repository.TaskRepository;
 import com.rdpaas.task.strategy.Strategy;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
-
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
-import java.util.concurrent.*;
+import java.util.Map;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.Callable;
+import java.util.concurrent.DelayQueue;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 /**
  * 任务调度器
@@ -45,6 +57,11 @@ public class TaskExecutor {
      * 可以明确知道最多只会运行2个线程，直接使用系统自带工具就可以了
      */
     private ExecutorService bossPool = Executors.newFixedThreadPool(2);
+
+    /**
+     * 正在执行的任务的Future
+     */
+    private Map<Long,Future> doingFutures = new HashMap<>();
 
     /**
      * 声明工作线程池
@@ -160,7 +177,14 @@ public class TaskExecutor {
                          * loader线程中已经使用乐观锁控制了，这里没必要了
                          */
                         taskRepository.update(task);
-                        workerPool.execute(new Worker(task));
+                        /**
+                         * 提交到线程池
+                         */
+                        Future future = workerPool.submit(new Worker(task));
+                        /**
+                         * 暂存在doingFutures
+                         */
+                        doingFutures.put(task.getId(),future);
                     }
                 	 
                 } catch (Exception e) {
@@ -171,7 +195,7 @@ public class TaskExecutor {
 
     }
 
-    class Worker implements Runnable {
+    class Worker implements Callable<String> {
 
         private Task task;
 
@@ -180,18 +204,22 @@ public class TaskExecutor {
         }
 
         @Override
-        public void run() {
+        public String call() {
             logger.info("Begin to execute task:{}",task.getId());
             TaskDetail detail = null;
             try {
                 //开始任务
                 detail = taskRepository.start(task);
-                if(detail == null) return;
+                if(detail == null) return null;
                 //执行任务
                 task.getInvokor().invoke();
                 //完成任务
                 finish(task,detail);
                 logger.info("finished execute task:{}",task.getId());
+                /**
+                 * 执行完后删了
+                 */
+                doingFutures.remove(task.getId());
             } catch (Exception e) {
                 logger.error("execute task:{} error,cause by:{}",task.getId(), e);
                 try {
@@ -200,6 +228,7 @@ public class TaskExecutor {
                     logger.error("fail task:{} error,cause by:{}",task.getId(), e);
                 }
             }
+            return null;
         }
 
     }
@@ -285,14 +314,73 @@ public class TaskExecutor {
     }
 
     /**
-     * 立即执行任务，就是设置一下延时为0加入任务队列就好了
+     * 立即执行任务，就是设置一下延时为0加入任务队列就好了，这个可以外部直接调用
      * @param taskId
      * @return
      */
     public boolean startNow(Long taskId) {
         Task task = taskRepository.get(taskId);
+        task.setStatus(TaskStatus.DOING);
+        taskRepository.update(task);
         DelayItem<Task> delayItem = new DelayItem<Task>(0L, task);
         return taskQueue.offer(delayItem);
     }
 
+    /**
+     * 立即停止正在执行的任务，留给外部调用的方法
+     * @param taskId
+     * @return
+     */
+    public boolean stopNow(Long taskId) {
+        Task task = taskRepository.get(taskId);
+        if(task == null) {
+            return false;
+        }
+        /**
+         * 该任务不是正在执行，直接修改task状态为已完成即可
+         */
+        if(task.getStatus() != TaskStatus.DOING) {
+            task.setStatus(TaskStatus.STOP);
+            taskRepository.update(task);
+            return true;
+        }
+        /**
+         * 该任务正在执行，使用节点配合心跳发布停用通知
+         */
+        int n = nodeRepository.updateNotifyInfo(NotifyCmd.STOP_TASK,String.valueOf(taskId));
+        return n > 0;
+    }
+
+    /**
+     * 立即停止正在执行的任务，这个不需要自己调用，是给心跳线程调用
+     * @param taskId
+     * @return
+     */
+    public boolean stop(Long taskId) {
+        Task task = taskRepository.get(taskId);
+        /**
+         * 不是自己节点的任务，本节点不能执行停用
+         */
+        if(task == null || !config.getNodeId().equals(task.getNodeId())) {
+            return false;
+        }
+        /**
+         * 拿到正在执行任务的future，然后强制停用，并删除doingFutures的任务
+         */
+        Future future = doingFutures.get(taskId);
+        boolean flag =  future.cancel(true);
+        if(flag) {
+            doingFutures.remove(taskId);
+            /**
+             * 修改状态为已停用
+             */
+            task.setStatus(TaskStatus.STOP);
+            taskRepository.update(task);
+        }
+        /**
+         * 重置通知信息，避免重复执行停用通知
+         */
+        nodeRepository.resetNotifyInfo(NotifyCmd.STOP_TASK);
+        return flag;
+    }
 }
