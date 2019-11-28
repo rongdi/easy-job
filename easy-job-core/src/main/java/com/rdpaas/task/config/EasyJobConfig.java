@@ -8,6 +8,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.stereotype.Component;
 
 import javax.sql.DataSource;
+import java.util.Date;
 
 @Component
 public class EasyJobConfig {
@@ -81,6 +82,11 @@ public class EasyJobConfig {
     public DataSource primaryDataSource() {
         return DataSourceBuilder.create().build();
     }
+
+    /**
+     * 系统启动时间
+     */
+    private Date sysStartTime;
 
     public Long getNodeId() {
         return nodeId;
@@ -170,4 +176,11 @@ public class EasyJobConfig {
         this.recoverSeconds = recoverSeconds;
     }
 
+    public Date getSysStartTime() {
+        return sysStartTime;
+    }
+
+    public void setSysStartTime(Date sysStartTime) {
+        this.sysStartTime = sysStartTime;
+    }
 }

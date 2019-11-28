@@ -1,6 +1,7 @@
 package com.rdpaas.task.annotation;
 
 import com.rdpaas.task.common.Invocation;
+import com.rdpaas.task.config.EasyJobConfig;
 import com.rdpaas.task.repository.TaskRepository;
 import com.rdpaas.task.scheduler.TaskExecutor;
 import com.rdpaas.task.utils.Delimiters;
@@ -12,6 +13,7 @@ import org.springframework.context.event.ContextRefreshedEvent;
 import org.springframework.stereotype.Component;
 
 import java.lang.reflect.Method;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -31,6 +33,8 @@ public class ContextRefreshedListener implements ApplicationListener<ContextRefr
     @Autowired
     private TaskRepository taskRepository;
 
+    @Autowired
+    private EasyJobConfig config;
     /**
      * 用来保存方法名/任务名和任务插入后数据库的ID的映射,用来处理子任务新增用
      */
@@ -41,8 +45,13 @@ public class ContextRefreshedListener implements ApplicationListener<ContextRefr
      */
     private List<String> allTaskNames;
 
+
     @Override
     public void onApplicationEvent(ContextRefreshedEvent event) {
+        /**
+         * 初始化系统启动时间,用于解决系统重启后，还是按照之前时间执行任务
+         */
+        config.setSysStartTime(new Date());
         /**
          * 重启重新初始化本节点的任务状态
          */

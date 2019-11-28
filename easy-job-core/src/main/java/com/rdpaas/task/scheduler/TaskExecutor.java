@@ -10,6 +10,7 @@ import com.rdpaas.task.config.EasyJobConfig;
 import com.rdpaas.task.repository.NodeRepository;
 import com.rdpaas.task.repository.TaskRepository;
 import com.rdpaas.task.strategy.Strategy;
+import com.rdpaas.task.utils.CronExpression;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -141,6 +142,22 @@ public class TaskExecutor {
                         if(n == 0 || nextStartTime == null) {
                         	continue;
                         }
+
+                        /**
+                         * 如果任务的下次启动时间还在系统启动时间之前，说明时间已过期需要重新更新
+                         */
+                        if(nextStartTime != null && nextStartTime.before(config.getSysStartTime())) {
+                            /**
+                             * 如果服务停止重新启动后由于之前的任务的nextStartTime时间还是之前的就可能存在，再次启动后仍然按照之前时间执行的情况
+                             */
+                            CronExpression cronExpession = new CronExpression(task.getCronExpr());
+                            Date nextStartDate = cronExpession.getNextValidTimeAfter(config.getSysStartTime());
+                            task.setNextStartTime(nextStartDate);
+                            task.setStatus(TaskStatus.NOT_STARTED);
+                            taskRepository.updateWithVersion(task);
+                            continue;
+                        }
+
                         /**
                          * 封装成延时对象放入延时队列,这里再查一次是因为上面乐观锁已经更新了版本，会导致后面结束任务更新不成功
                          */
