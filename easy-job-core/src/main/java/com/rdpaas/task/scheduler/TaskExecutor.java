@@ -154,7 +154,7 @@ public class TaskExecutor {
                             Date nextStartDate = cronExpession.getNextValidTimeAfter(config.getSysStartTime());
                             task.setNextStartTime(nextStartDate);
                             task.setStatus(TaskStatus.NOT_STARTED);
-                            taskRepository.updateWithVersion(task);
+                            taskRepository.update(task);
                             continue;
                         }
 

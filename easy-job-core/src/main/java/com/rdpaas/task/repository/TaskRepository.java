@@ -260,7 +260,7 @@ public class TaskRepository {
         CronExpression cronExpession = new CronExpression(task.getCronExpr());
         Date nextStartDate = cronExpession.getNextValidTimeAfter(task.getNextStartTime());
         /**
-         *  如果没有下次执行时间了，该任务就完成了，反之变成待执行
+         *  如果没有下次执行时间了，该任务就完成了，反之变成未开始
          */
         if(nextStartDate == null) {
             task.setStatus(TaskStatus.FINISH);
