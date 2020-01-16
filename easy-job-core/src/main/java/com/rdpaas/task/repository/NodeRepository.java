@@ -115,7 +115,7 @@ public class NodeRepository {
     public List<Node> getEnableNodes(int timeout) {
         StringBuilder sb = new StringBuilder();
         sb.append("select id,node_id as nodeId,row_num as rownum,counts,weight,status,notify_cmd as notifyCmd,notify_value as notifyValue,create_time as createTime,update_time as updateTime from easy_job_node n  ")
-                .append("where timestampdiff(SECOND,n.update_time,now()) < ? order by node_id");
+                .append("where n.update_time > date_sub(now(), interval ? second) order by node_id");
         Object args[] = {timeout};
         return jdbcTemplate.query(sb.toString(),args,new BeanPropertyRowMapper(Node.class));
     }

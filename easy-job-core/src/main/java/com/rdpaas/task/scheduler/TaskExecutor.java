@@ -103,7 +103,11 @@ public class TaskExecutor {
 		@Override
 		public void run() {
 			for(;;) {
-				try { 
+				try {
+                    /**
+                     * 先休息一下
+                     */
+                    Thread.sleep(config.getFetchPeriod());
 					/**
 	                 * 先获取可用的节点列表
 	                 */
@@ -166,7 +170,7 @@ public class TaskExecutor {
                         taskQueue.offer(delayItem);
                     	
 	                }
-	                Thread.sleep(config.getFetchPeriod());
+
 				} catch(Exception e) {
 					logger.error("fetch task list failed,cause by:{}", e);
 				}
