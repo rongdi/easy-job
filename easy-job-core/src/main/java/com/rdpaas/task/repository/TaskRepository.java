@@ -105,8 +105,7 @@ public class TaskRepository {
      */
     public List<Task> listRecoverTasks(int timeout) {
         StringBuilder sb = new StringBuilder();
-
-        sb.append("select t.* from easy_job_task t left join easy_job_node n on t.node_id = n.id ")
+        sb.append("select t.id,t.node_id AS nodeId,t.pid,t.`name`,t.cron_expr AS cronExpr,t.status,t.fail_count AS failCount,t.success_count AS successCount,t.version,t.first_start_time AS firstStartTime,t.next_start_time AS nextStartTime,t.update_time AS updateTime,t.create_time AS createTime from easy_job_task t left join easy_job_node n on t.node_id = n.id ")
                 .append("where (t.status = 2 or t.status = 1) and n.update_time < date_sub(now(), interval ? second)");
         Object[] args = {timeout};
         return jdbcTemplate.query(sb.toString(),args,new BeanPropertyRowMapper(Task.class));
