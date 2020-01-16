@@ -45,13 +45,15 @@ public class TaskRepository {
 
     /**
      * 查询还需要指定时间才开始的主任务列表
+     * TIMESTAMPDIFF(SECOND,NOW(),next_start_time) < ? 这里用不到索引，会有效率问题
+     * next_start_time < date_sub(now(), interval ? second) 改成这种方式就好了
      * @param duration
      * @return
      */
     public List<Task> listNotStartedTasks(int duration) {
     	StringBuilder sb = new StringBuilder();
     	sb.append("SELECT id,node_id AS nodeId,pid,`name`,cron_expr AS cronExpr,STATUS,fail_count AS failCount,success_count AS successCount,VERSION,first_start_time AS firstStartTime,next_start_time AS nextStartTime,update_time AS updateTime,create_time AS createTime FROM easy_job_task ")
-    	.append("WHERE pid IS NULL AND TIMESTAMPDIFF(SECOND,NOW(),next_start_time) < ? AND STATUS = 0 ")
+    	.append("WHERE pid IS NULL AND next_start_time < date_sub(now(), interval ? second) AND STATUS = 0 ")
     	.append("ORDER BY next_start_time");
     	Object[] args = {duration};
         return jdbcTemplate.query(sb.toString(),args,new BeanPropertyRowMapper(Task.class));
@@ -96,13 +98,16 @@ public class TaskRepository {
 
     /**
      * 列出需要恢复的任务，需要恢复的任务是指所属执行节点已经挂了并且该任务还属于执行中的任务
+     * timestampdiff(SECOND,n.update_time,now()) > ? 这种用不到索引
+     * n.update_time < date_sub(now(), interval ? second) 换成这种
      * @param timeout 超时时间
      * @return
      */
     public List<Task> listRecoverTasks(int timeout) {
         StringBuilder sb = new StringBuilder();
-        sb.append("select t.* from easy_job_task t left join easy_job_node n on t.node_id = n.node_id ")
-                .append("where (t.status = 2 or t.status = 1) and n.update_time < date_sub(now(), interval ? second) ");
+
+        sb.append("select t.* from easy_job_task t left join easy_job_node n on t.node_id = n.id ")
+                .append("where (t.status = 2 or t.status = 1) and n.update_time < date_sub(now(), interval ? second)");
         Object[] args = {timeout};
         return jdbcTemplate.query(sb.toString(),args,new BeanPropertyRowMapper(Task.class));
     }

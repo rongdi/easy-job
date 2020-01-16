@@ -6,7 +6,7 @@ easyjob:
        password: 123456
        driver-class-name: com.mysql.jdbc.Driver
     node:
-      id: 2 #节点id，不能重复
+      id: 1 #节点id，不能重复
       strategy: default #节点取任务策略,default,id_hash,least_count,weight,除了默认策略其它依赖于心跳开关
       fetchPeriod: 100  #节点取任务周期，单位毫秒
       fetchDuration: 300 #节点每次取还有多久执行的任务，单位秒
