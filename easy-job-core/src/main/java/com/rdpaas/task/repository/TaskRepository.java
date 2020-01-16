@@ -101,8 +101,8 @@ public class TaskRepository {
      */
     public List<Task> listRecoverTasks(int timeout) {
         StringBuilder sb = new StringBuilder();
-        sb.append("select t.* from easy_job_task t left join easy_job_node n on t.node_id = n.id ")
-                .append("where (t.status = 2 or t.status = 1) and timestampdiff(SECOND,n.update_time,now()) > ?");
+        sb.append("select t.* from easy_job_task t left join easy_job_node n on t.node_id = n.node_id ")
+                .append("where (t.status = 2 or t.status = 1) and n.update_time < date_sub(now(), interval ? second) ");
         Object[] args = {timeout};
         return jdbcTemplate.query(sb.toString(),args,new BeanPropertyRowMapper(Task.class));
     }

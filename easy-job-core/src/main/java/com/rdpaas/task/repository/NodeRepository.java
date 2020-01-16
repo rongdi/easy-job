@@ -67,14 +67,14 @@ public class NodeRepository {
     }
 
     /**
-     * 更新所有节点的通知信息,实现修改任务，停止任务通知等
+     * 更新节点的通知信息,实现修改任务，停止任务通知等
      * @param cmd 通知指令
      * @param notifyValue 通知的值，一般存id
      * @return
      */
-    public int updateNotifyInfo(NotifyCmd cmd,String notifyValue) {
+    public int updateNotifyInfo(Long nodeId,NotifyCmd cmd,String notifyValue) {
         StringBuilder sb = new StringBuilder();
-        sb.append("update easy_job_node set notify_cmd = ?,notify_value = ? ");
+        sb.append("update easy_job_node set notify_cmd = ?,notify_value = ? where node_id = ?");
         List<Object> objList = new ArrayList<>();
         objList.add(cmd.getId());
         objList.add(notifyValue);
@@ -87,15 +87,15 @@ public class NodeRepository {
      * @param cmd
      * @return
      */
-    public int resetNotifyInfo(NotifyCmd cmd) {
+    public int resetNotifyInfo(Long nodeId,NotifyCmd cmd) {
         StringBuilder sb = new StringBuilder();
         sb.append("update easy_job_node set notify_cmd = ?,notify_value = ? ");
-        sb.append("where notify_cmd = ?");
+        sb.append("where notify_cmd = ? and node_id = ?");
         List<Object> objList = new ArrayList<>();
         objList.add(NotifyCmd.NO_NOTIFY);
         objList.add("");
         objList.add(cmd.getId());
-
+        objList.add(nodeId);
         return jdbcTemplate.update(sb.toString(), objList.toArray());
     }
 

@@ -81,6 +81,10 @@ public class RecoverExecutor {
             for (;;) {
                 try {
                     /**
+                     * 太累了，先睡会
+                     */
+                    Thread.sleep(config.getRecoverSeconds() * 1000);
+                    /**
                      * 查找需要恢复的任务,这里界定需要恢复的任务是任务还没完成，并且所属执行节点超过3个
                      * 心跳周期没有更新心跳时间。由于这些任务由于当时执行节点没有来得及执行完就挂了，所以
                      * 只需要把状态再改回待执行，并且下次执行时间改成当前时间，让任务再次被调度一次
@@ -110,14 +114,16 @@ public class RecoverExecutor {
                             continue;
                         }
                         /**
-                         * 直接将任务状态改成待执行，并且节点改成当前节点
+                         * 直接将任务状态改成待执行，并且节点改成当前节点，有人可能会怀疑这里的安全性，可能会随着该事务的原主人节点的下一个
+                         * 正好在这时候挂了，chooseNodeId得到的下一个节点就变了，其它节点获取到的下一个节点就变了，也会进入这里。不过就算这里
+                         * 产生了竞争。如果我只是给事务换个主人。真正补偿由补偿线程完成，那边使用乐观锁去抢占事务，就会变得很安全。
                          */
                     	task.setStatus(TaskStatus.PENDING);
                     	task.setNextStartTime(new Date());
                     	task.setNodeId(config.getNodeId());
                     	taskRepository.updateWithVersion(task);
                     }
-                    Thread.sleep(config.getRecoverSeconds() * 1000);
+
                 } catch (Exception e) {
                     logger.error("Get next task failed,cause by:{}", e);
                 }
@@ -178,6 +184,10 @@ public class RecoverExecutor {
                 if(handler == null || StringUtils.isEmpty(notifyValue)) {
                     return;
                 }
+                /**
+                 * 先重置通知再说，以免每次心跳无限执行通知下面更新逻辑
+                 */
+                nodeRepository.resetNotifyInfo(currNode.getNodeId(),cmd);
                 /**
                  * 执行操作
                  */
